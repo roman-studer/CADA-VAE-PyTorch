@@ -20,7 +20,7 @@ def map_label(label, classes):
 
 class CLASSIFIER:
     def __init__(self,model, _train_X, _train_Y,_test_seen_X,_test_seen_Y,_test_novel_X, _test_novel_Y, seenclasses,novelclasses,
-                 _nclass, device , _lr=0.001, _beta1=0.5, _nepoch=20, _batch_size=100, generalized=True, use = None, ignore = None,train_only=False,test_only=False,do_nothing=False):
+                 _nclass, device, logger, _lr=0.001, _beta1=0.5, _nepoch=20, _batch_size=100, generalized=True, use = None, ignore = None,train_only=False,test_only=False,do_nothing=False):
 
         self.train_only = train_only
         self.device = device
@@ -86,7 +86,7 @@ class CLASSIFIER:
 
             if test_only==False:
                 if generalized:
-                    self.acc_seen, self.acc_novel, self.H = self.fit()
+                    self.acc_seen, self.acc_novel, self.H = self.fit(logger)
                 else:
                     self.acc = self.fit_zsl()
 
@@ -150,7 +150,7 @@ class CLASSIFIER:
 
         return best_acc
 
-    def fit(self):
+    def fit(self, logger):
         best_H = -1
         best_seen = 0
         best_novel = 0
@@ -203,11 +203,12 @@ class CLASSIFIER:
                 with torch.no_grad():
                     acc_seen = self.val_gzsl(self.test_seen_feature, self.test_seen_label, self.seenclasses)
                     acc_novel = self.val_gzsl(self.test_novel_feature, self.test_novel_label, self.novelclasses)
+                    logger.log_metrics({'acc_seen': acc_seen, 'acc_novel': acc_novel, 'cls_loss': loss}, step=self.current_epoch)
 
-            if (acc_seen+acc_novel)>0:
+            if (acc_seen+acc_novel) > 0:
                 H = (2*acc_seen*acc_novel) / (acc_seen+acc_novel)
             else:
-                H = 0
+                H = 0.00001
 
             if H > best_H:
 
