@@ -130,6 +130,7 @@ class DATA_LOADER(object):
         self.ntest_class = self.novelclasses.size(0)
         self.train_class = self.seenclasses.clone()
         self.allclasses = torch.arange(0, self.ntrain_class+self.ntest_class).long()
+        self.attri_name = matcontent['attri_name']
 
         self.train_mapped_label = map_label(train_label, self.seenclasses)
 

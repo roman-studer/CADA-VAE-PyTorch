@@ -238,7 +238,7 @@ class Model(nn.Module):
                     print('epoch ' + str(epoch) + ' | iter ' + str(i) + '\t' +
                           ' | loss ' + str(loss)[:5])
 
-                    #logger.log_metrics({'vae_loss': loss}, step=(epoch+1) * iters)
+                    logger.log_metrics({'vae_loss': loss})
 
                 if i % 50 == 0 and i > 0:
                     losses.append(loss)
@@ -419,7 +419,7 @@ class Model(nn.Module):
         cls = classifier.CLASSIFIER(clf, train_X, train_Y, test_seen_X, test_seen_Y, test_novel_X,
                                     test_novel_Y,
                                     cls_seenclasses, cls_novelclasses,
-                                    self.num_classes, self.device, logger, self.lr_cls, 0.5, 1,
+                                    self.num_classes, self.device, logger, self.dataset.attri_name, self.lr_cls, 0.5, 1,
                                     self.classifier_batch_size,
                                     self.generalized)
 
@@ -432,13 +432,13 @@ class Model(nn.Module):
                     cls.acc = cls.fit_zsl()
 
             if self.generalized:
-                logger.log_metrics({'acc_seen': cls.acc_seen, 'acc_novel': cls.acc_novel, 'H': cls.H, 'cls_average_loss': cls.average_loss}, step=k)
+                logger.log_metrics({'acc_seen': cls.acc_seen, 'acc_novel': cls.acc_novel, 'H': cls.H, 'cls_average_loss': cls.average_loss})
 
                 print('[%.1f]     novel=%.4f, seen=%.4f, h=%.4f , loss=%.4f' % (
                     k, cls.acc_novel, cls.acc_seen, cls.H, cls.average_loss))
 
-                history.append([torch.tensor(cls.acc_seen).item(), torch.tensor(cls.acc_novel).item(),
-                                torch.tensor(cls.H).item()])
+                history.append([torch.tensor(cls.acc_seen).clone().item(), torch.tensor(cls.acc_novel).clone().item(),
+                                torch.tensor(cls.H).clone().item()])
 
             else:
                 print('[%.1f]  acc=%.4f ' % (k, cls.acc))

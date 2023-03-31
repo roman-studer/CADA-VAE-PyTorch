@@ -20,7 +20,7 @@ def map_label(label, classes):
 
 class CLASSIFIER:
     def __init__(self,model, _train_X, _train_Y,_test_seen_X,_test_seen_Y,_test_novel_X, _test_novel_Y, seenclasses,novelclasses,
-                 _nclass, device, logger, _lr=0.001, _beta1=0.5, _nepoch=20, _batch_size=100, generalized=True, use = None, ignore = None,train_only=False,test_only=False,do_nothing=False):
+                 _nclass, device, logger, class_names, _lr=0.001, _beta1=0.5, _nepoch=20, _batch_size=100, generalized=True, use = None, ignore = None,train_only=False,test_only=False,do_nothing=False):
 
         self.train_only = train_only
         self.device = device
@@ -34,6 +34,7 @@ class CLASSIFIER:
         self.test_seen_label = _test_seen_Y.to(self.device)
         self.test_novel_feature = _test_novel_X.to(self.device)
         self.test_novel_label = _test_novel_Y.to(self.device)
+        self.class_names = class_names
 
 
         self.seenclasses = seenclasses.to(self.device)
@@ -201,9 +202,10 @@ class CLASSIFIER:
 
             if self.train_only==False:
                 with torch.no_grad():
-                    acc_seen = self.val_gzsl(self.test_seen_feature, self.test_seen_label, self.seenclasses)
-                    acc_novel = self.val_gzsl(self.test_novel_feature, self.test_novel_label, self.novelclasses)
-                    logger.log_metrics({'acc_seen': acc_seen, 'acc_novel': acc_novel, 'cls_loss': loss}, step=self.current_epoch)
+                    acc_seen, predicted_seen = self.val_gzsl(self.test_seen_feature, self.test_seen_label, self.seenclasses)
+                    acc_novel, predicted_novel = self.val_gzsl(self.test_novel_feature, self.test_novel_label, self.novelclasses)
+                    logger.log_metrics({'acc_seen': acc_seen, 'acc_novel': acc_novel, 'cls_loss': loss})
+
 
             if (acc_seen+acc_novel) > 0:
                 H = (2*acc_seen*acc_novel) / (acc_seen+acc_novel)
@@ -215,6 +217,11 @@ class CLASSIFIER:
                 best_seen = acc_seen
                 best_novel = acc_novel
                 best_H = H
+
+                # log confusion matrix of best epoch
+                logger.log_confusion_matrix(torch.cat((predicted_seen, predicted_novel)).detach().cpu().numpy(),
+                                            torch.cat((self.test_seen_label, self.test_novel_label)).detach().cpu().numpy(),
+                                            class_names=list(self.class_names))
 
 
         self.loss = loss
@@ -263,6 +270,7 @@ class CLASSIFIER:
             start = 0
             ntest = test_X.size()[0]
             predicted_label = torch.LongTensor(test_label.size())
+
             for i in range(0, ntest, self.batch_size):
 
                 end = min(ntest, start+self.batch_size)
@@ -276,7 +284,7 @@ class CLASSIFIER:
 
             #print(str(predicted_label[:3]).ljust(40,'.'), end= ' '     )
             acc = self.compute_per_class_acc_gzsl(test_label, predicted_label, target_classes)
-            return acc
+            return acc, predicted_label
 
 
     def compute_per_class_acc_gzsl(self, test_label, predicted_label, target_classes):

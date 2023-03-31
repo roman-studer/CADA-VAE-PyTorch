@@ -28,14 +28,17 @@ class WandBLogger:
         wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=None, y_true=y_true, preds=y_pred,
                                                                    class_names=class_names)})
 
-    def log_metrics(self, metrics, step):
+    def log_metrics(self, metrics, step: int = None):
         """
         Log metrics to wandb
         :param metrics: dictionary of metrics
         :param step: step number
         :return: None
         """
-        self.wandb.log(metrics, step=step)
+        if step is None:
+            self.wandb.log(metrics)
+        else:
+            self.wandb.log(metrics, step=step)
 
     def log_config(self, config: dict):
         """

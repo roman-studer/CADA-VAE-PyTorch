@@ -20,20 +20,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default='POLLEN', help='dataset to use')
 parser.add_argument('--num_shots', type=int, default=0, help='number of shots')
 parser.add_argument('--generalized', type=str2bool, default=True, help='generalized or not')
-parser.add_argument('--cls_train_steps', type=int, default=10)
+parser.add_argument('--cls_train_steps', type=int, default=50)
 parser.add_argument('--subset', type=bool, default=True, help='use subset of data, only available for POLLEN')
 parser.add_argument('--device', type=str, default='cuda', help='device to use')
 parser.add_argument('--run_name', type=str, default=str(uuid.uuid4().hex[:8]), help='run name')
 parser.add_argument('--random_state', type=int, default=42, help='random state')
-parser.add_argument('--n_epochs', type=int, default=2, help='number of epochs')
+parser.add_argument('--n_epochs', type=int, default=30, help='number of epochs')
 parser.add_argument('--batch_size', type=int, default=50, help='batch size')
-parser.add_argument('--latent_size', type=int, default=15, help='latent size')
-parser.add_argument('--lr_gen_model', type=float, default=0.00015, help='learning rate for generator model')
-parser.add_argument('--lr_cls', type=float, default=0.001, help='learning rate for classifier')
+parser.add_argument('--latent_size', type=int, default=35, help='latent size')
+parser.add_argument('--lr_gen_model', type=float, default=0.000015, help='learning rate for generator model')
+parser.add_argument('--lr_cls', type=float, default=0.00001, help='learning rate for classifier')
 parser.add_argument('--beta_factor', type=float, default=0.25, help='beta factor')
 parser.add_argument('--cross_reconstruction_factor', type=float, default=2.37, help='cross reconstruction factor')
 parser.add_argument('--distance_factor', type=float, default=8.13, help='distance factor')
-parser.add_argument('--loss', type=str, default='l1', help='loss to use, l1 or l2')
+parser.add_argument('--loss', type=str, default='l2', help='loss to use, l1 or l2')
 args = parser.parse_args()
 
 if args.device == 'cuda':
@@ -77,8 +77,8 @@ hyperparameters = {
     'lr_cls': args.lr_cls,
     'dataset': args.dataset,
     'hidden_size_rule': {'resnet_features': (64, 42),
-                         'attributes': (25, 20),
-                         'sentences': (25, 20)},
+                         'attributes': (185, 25),
+                         'sentences': (185, 25)},
     'latent_size': args.latent_size,
     'subset': args.subset
 }
