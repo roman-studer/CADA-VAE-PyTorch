@@ -207,7 +207,8 @@ class Model(nn.Module):
     def train_vae(self, logger):
 
         losses = []
-
+        self.best_model = None # best epoch
+        self.best_loss = None # best loss
         self.dataloader = data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True,
                                           drop_last=True)  # ,num_workers = 4)
 
@@ -234,6 +235,10 @@ class Model(nn.Module):
 
                 loss = self.trainstep(data_from_modalities[0], data_from_modalities[1], logger)
 
+                if self.best_loss is None or loss < self.best_loss:
+                    self.best_loss = loss
+                    self.best_model = copy.deepcopy(self.state_dict())
+
                 if i % 50 == 0:
                     print('epoch ' + str(epoch) + ' | iter ' + str(i) + '\t' +
                           ' | loss ' + str(loss)[:5])
@@ -242,6 +247,9 @@ class Model(nn.Module):
 
                 if i % 50 == 0 and i > 0:
                     losses.append(loss)
+
+        # load best epoch
+        self.load_state_dict(self.best_model)
 
         # turn into evaluation mode:
         for key, value in self.encoder.items():
