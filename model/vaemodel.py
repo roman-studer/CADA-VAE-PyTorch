@@ -447,7 +447,7 @@ class Model(nn.Module):
 
                 history.append([torch.tensor(cls.acc_seen).clone().detach().item(),
                                 torch.tensor(cls.acc_novel).clone().detach().item(),
-                                torch.tensor(cls.H).clone().deach().item()])
+                                torch.tensor(cls.H).clone().detach().item()])
 
             else:
                 print('[%.1f]  acc=%.4f ' % (k, cls.acc))
