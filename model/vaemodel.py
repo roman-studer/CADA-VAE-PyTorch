@@ -445,15 +445,19 @@ class Model(nn.Module):
                 print('[%.1f]     novel=%.4f, seen=%.4f, h=%.4f , loss=%.4f' % (
                     k, cls.acc_novel, cls.acc_seen, cls.H, cls.average_loss))
 
-                history.append([torch.tensor(cls.acc_seen).clone().item(), torch.tensor(cls.acc_novel).clone().item(),
-                                torch.tensor(cls.H).clone().item()])
+                history.append([torch.tensor(cls.acc_seen).clone().detach().item(),
+                                torch.tensor(cls.acc_novel).clone().detach().item(),
+                                torch.tensor(cls.H).clone().deach().item()])
 
             else:
                 print('[%.1f]  acc=%.4f ' % (k, cls.acc))
                 history.append([0, torch.tensor(cls.acc).clone().detach().item(), 0])
 
         if self.generalized:
-            return torch.tensor(cls.acc_seen).clone().detach().item(), torch.tensor(cls.acc_novel).clone().detach().item(), torch.tensor(
-                cls.H).clone().detach().item(), history
+            return \
+                torch.tensor(cls.acc_seen).clone().detach().item(), \
+                torch.tensor(cls.acc_novel).clone().detach().item(), \
+                torch.tensor(cls.H).clone().detach().item(), \
+                history
         else:
             return 0, torch.tensor(cls.acc).clone().detach().item(), 0, history
