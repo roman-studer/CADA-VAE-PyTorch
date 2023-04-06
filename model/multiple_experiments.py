@@ -193,7 +193,7 @@ for i in range(10):
     """
 
     # initialize wandb
-    logger = WandBLogger(run_name={str(i)} + '_' + args.run_name)
+    logger = WandBLogger(run_name=str(i) + '_' + args.run_name)
 
     logger.log_config(hyperparameters)
 
