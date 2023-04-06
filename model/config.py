@@ -27,8 +27,14 @@ class Config(DataClassJsonMixin, metaclass=ABCMeta):
         self.load_yaml(self.name)
 
     def load_yaml(self, name: str):
-        built_path = Path('../' + re.sub(rf"{self.base}.*", f'{self.base}/configuration', str(os.getcwd())) + '/' + name + '.yaml')
-        config = yaml.full_load(built_path.read_text(encoding="UTF-8"))
+        # ugly workaround to get the path to the configuration directory
+        try:
+            built_path = Path('../' + re.sub(rf"{self.base}.*", f'{self.base}/configuration', str(os.getcwd())) + '/' + name + '.yaml')
+            config = yaml.full_load(built_path.read_text(encoding="UTF-8"))
+        except:
+            self.base = 'CADA-VAE-PyTorch'
+            built_path = Path(re.sub(rf"{self.base}.*", f'{self.base}/configuration', str(os.getcwd())) + '/' + name + '.yaml')
+            config = yaml.full_load(built_path.read_text(encoding="UTF-8"))
         self.__dict__.update(config)
 
 

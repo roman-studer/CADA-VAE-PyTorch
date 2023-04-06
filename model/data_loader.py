@@ -76,6 +76,8 @@ class DATA_LOADER(object):
             path = self.data_path + '/' + self.config['dataset'] + '/pollen_data_subset.pkl'
         else:
             path = self.data_path + '/' + self.config['dataset'] + '/pollen_data.pkl'
+        if self.config['split'] is not None:
+            path = path.replace('pollen_data', str(self.config['split']) + '_pollen_data')
 
         with open(path, 'rb') as f:
             data = pickle.load(f)

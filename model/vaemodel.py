@@ -204,7 +204,7 @@ class Model(nn.Module):
 
         return loss.item()
 
-    def train_vae(self, logger):
+    def train_vae(self, logger, split: int = None):
 
         losses = []
         self.best_model = None # best epoch
@@ -259,7 +259,7 @@ class Model(nn.Module):
 
         return losses
 
-    def train_classifier(self, logger, show_plots=False):
+    def train_classifier(self, logger, split: int = None, show_plots=False):
 
         if self.num_shots > 0:
             print('================  transfer features from test to train ==================')
