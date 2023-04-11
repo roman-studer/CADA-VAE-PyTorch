@@ -5,6 +5,13 @@ import uuid
 
 from wandb_logging import WandBLogger
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
+torch.multiprocessing.set_sharing_strategy('file_system')
+torch.multiprocessing.set_start_method('spawn')
+
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -133,7 +140,7 @@ cls_train_steps = [
     {'dataset': 'AWA2', 'num_shots': 10, 'generalized': False, 'cls_train_steps': 78},
     {'dataset': 'POLLEN', 'num_shots': 0, 'generalized': True, 'cls_train_steps': args.cls_train_steps},
     {'dataset': 'POLLEN', 'num_shots': 0, 'generalized': True, 'cls_train_steps': args.cls_train_steps},
-    {'dataset': 'POLLEN', 'num_shots': 4, 'generalized': True, 'cls_train_steps': args.cls_train_steps},
+    {'dataset': 'POLLEN', 'num_shots': 0, 'generalized': True, 'cls_train_steps': args.cls_train_steps},
 ]
 
 ##################################
@@ -196,7 +203,7 @@ for i in range(10):
     logger = WandBLogger(run_name=str(i) + '_' + args.run_name)
 
     logger.log_config(hyperparameters)
-
+    
     losses = model.train_vae(logger=logger)
 
     u, s, h, history = model.train_classifier(logger=logger)
@@ -223,4 +230,7 @@ for i in range(10):
     torch.save(state, f'./model/checkpoints/{i}_{args.run_name}_trained.pth.tar')
     print('>> saved')
 
+    del model
+
     logger.finish()
+    del logger
