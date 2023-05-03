@@ -12,7 +12,6 @@ import final_classifier as classifier
 import models
 
 
-
 class LINEAR_LOGSOFTMAX(nn.Module):
     def __init__(self, input_dim, nclass):
         super(LINEAR_LOGSOFTMAX, self).__init__()
@@ -50,22 +49,31 @@ class Model(nn.Module):
         self.lr_cls = hyperparameters['lr_cls']
         self.cross_reconstruction = hyperparameters['model_specifics']['cross_reconstruction']
         self.cls_train_epochs = hyperparameters['cls_train_steps']
-        self.dataset = dataloader(self.DATASET, copy.deepcopy(self.auxiliary_data_source), device=self.device, config=hyperparameters)
+        self.split = hyperparameters['split']
+        self.toggle_jitter = hyperparameters['toggle_jitter']
+        self.jitter_intensity = hyperparameters['jitter_intensity']
+        self.dataset = dataloader(self.DATASET, copy.deepcopy(self.auxiliary_data_source), device=self.device,
+                                  config=hyperparameters)
 
         if self.DATASET == 'CUB':
             self.num_classes = 200
             self.num_novel_classes = 50
+            feature_dimensions = [2048, self.dataset.aux_data.size(1)]
+
         elif self.DATASET == 'SUN':
             self.num_classes = 717
             self.num_novel_classes = 72
+            feature_dimensions = [2048, self.dataset.aux_data.size(1)]
+
         elif self.DATASET == 'AWA1' or self.DATASET == 'AWA2':
             self.num_classes = 50
             self.num_novel_classes = 10
+            feature_dimensions = [2048, self.dataset.aux_data.size(1)]
+
         elif self.DATASET == 'POLLEN':
             self.num_classes = 15
             self.num_novel_classes = 2
-
-        feature_dimensions = [64, self.dataset.aux_data.size(1)]
+            feature_dimensions = [64, self.dataset.aux_data.size(1)]
 
         # Here, the encoders and decoders for all modalities are created and put into dict
 
@@ -116,18 +124,37 @@ class Model(nn.Module):
 
         return mapped_label
 
+    def apply_jitter(self, att):
+        """
+        Applying jitter to the attribute vector
+        :param att: torch.tensor [batch_size, att_dim]
+        :return: torch.tensor [batch_size, att_dim]
+        """
+        att = att + torch.randn_like(att) * self.jitter_intensity
+        return att
+
     def trainstep(self, img, att, logger):
 
         ##############################################
         # Encode image features and additional
         # features
         ##############################################
+        if self.toggle_jitter:
+            att = self.apply_jitter(att)
 
         mu_img, logvar_img = self.encoder['resnet_features'](img)
         z_from_img = self.reparameterize(mu_img, logvar_img)
 
+        logger.log_metrics({'mu_img': mu_img.mean().item(),
+                            'logvar_img': logvar_img.mean().item(),
+                            'z_from_img': z_from_img.mean().item()})
+
         mu_att, logvar_att = self.encoder[self.auxiliary_data_source](att)
         z_from_att = self.reparameterize(mu_att, logvar_att)
+
+        logger.log_metrics({'mu_att': mu_att.mean().item(),
+                            'logvar_att': logvar_att.mean().item(),
+                            'z_from_att': z_from_att.mean().item()})
 
         ##############################################
         # Reconstruct inputs
@@ -169,19 +196,19 @@ class Model(nn.Module):
         ##############################################
 
         f1 = 1.0 * (self.current_epoch - self.warmup['cross_reconstruction']['start_epoch']) / (1.0 * (
-                    self.warmup['cross_reconstruction']['end_epoch'] - self.warmup['cross_reconstruction'][
-                'start_epoch']))
+                self.warmup['cross_reconstruction']['end_epoch'] - self.warmup['cross_reconstruction'][
+            'start_epoch']))
         f1 = f1 * (1.0 * self.warmup['cross_reconstruction']['factor'])
         cross_reconstruction_factor = torch.cuda.FloatTensor(
             [min(max(f1, 0), self.warmup['cross_reconstruction']['factor'])])
 
         f2 = 1.0 * (self.current_epoch - self.warmup['beta']['start_epoch']) / (
-                    1.0 * (self.warmup['beta']['end_epoch'] - self.warmup['beta']['start_epoch']))
+                1.0 * (self.warmup['beta']['end_epoch'] - self.warmup['beta']['start_epoch']))
         f2 = f2 * (1.0 * self.warmup['beta']['factor'])
         beta = torch.cuda.FloatTensor([min(max(f2, 0), self.warmup['beta']['factor'])])
 
         f3 = 1.0 * (self.current_epoch - self.warmup['distance']['start_epoch']) / (
-                    1.0 * (self.warmup['distance']['end_epoch'] - self.warmup['distance']['start_epoch']))
+                1.0 * (self.warmup['distance']['end_epoch'] - self.warmup['distance']['start_epoch']))
         f3 = f3 * (1.0 * self.warmup['distance']['factor'])
         distance_factor = torch.cuda.FloatTensor([min(max(f3, 0), self.warmup['distance']['factor'])])
 
@@ -207,8 +234,8 @@ class Model(nn.Module):
     def train_vae(self, logger, split: int = None):
 
         losses = []
-        self.best_model = None # best epoch
-        self.best_loss = None # best loss
+        self.best_model = None  # best epoch
+        self.best_loss = None  # best loss
         self.dataloader = data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True,
                                           drop_last=True)  # ,num_workers = 4)
 
@@ -440,7 +467,8 @@ class Model(nn.Module):
                     cls.acc = cls.fit_zsl()
 
             if self.generalized:
-                logger.log_metrics({'acc_seen': cls.acc_seen, 'acc_novel': cls.acc_novel, 'H': cls.H, 'cls_average_loss': cls.average_loss})
+                logger.log_metrics({'acc_seen': cls.acc_seen, 'acc_novel': cls.acc_novel, 'H': cls.H,
+                                    'cls_average_loss': cls.average_loss})
 
                 print('[%.1f]     novel=%.4f, seen=%.4f, h=%.4f , loss=%.4f' % (
                     k, cls.acc_novel, cls.acc_seen, cls.H, cls.average_loss))
@@ -456,8 +484,8 @@ class Model(nn.Module):
         if self.generalized:
             return \
                 torch.tensor(cls.acc_seen).clone().detach().item(), \
-                torch.tensor(cls.acc_novel).clone().detach().item(), \
-                torch.tensor(cls.H).clone().detach().item(), \
-                history
+                    torch.tensor(cls.acc_novel).clone().detach().item(), \
+                    torch.tensor(cls.H).clone().detach().item(), \
+                    history
         else:
             return 0, torch.tensor(cls.acc).clone().detach().item(), 0, history

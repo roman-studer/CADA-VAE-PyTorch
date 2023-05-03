@@ -24,9 +24,11 @@ class WandBLogger:
         # Compute confusion matrix
         cm = confusion_matrix(y_true, y_pred)
         # Log the confusion matrix as an artifact
+
         table = wandb.Table(data=cm, columns=class_names, rows=class_names)
-        wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=None, y_true=y_true, preds=y_pred,
-                                                                   class_names=class_names)})
+
+        # log confusion matrix in wandb
+        wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=None, y_true=y_true, preds=y_pred, class_names=class_names)})
 
     def log_metrics(self, metrics, step: int = None):
         """

@@ -20,14 +20,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default='POLLEN', help='dataset to use')
 parser.add_argument('--num_shots', type=int, default=0, help='number of shots')
 parser.add_argument('--generalized', type=str2bool, default=True, help='generalized or not')
-parser.add_argument('--cls_train_steps', type=int, default=200)
+parser.add_argument('--cls_train_steps', type=int, default=1000)
 parser.add_argument('--subset', type=bool, default=True, help='use subset of data, only available for POLLEN')
 parser.add_argument('--device', type=str, default='cuda', help='device to use')
 parser.add_argument('--run_name', type=str, default=str(uuid.uuid4().hex[:8]), help='run name')
 parser.add_argument('--random_state', type=int, default=42, help='random state')
-parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs')
-parser.add_argument('--batch_size', type=int, default=200, help='batch size')
-parser.add_argument('--latent_size', type=int, default=15, help='latent size')
+parser.add_argument('--n_epochs', type=int, default=1000, help='number of epochs')
+parser.add_argument('--batch_size', type=int, default=270, help='batch size')
+parser.add_argument('--latent_size', type=int, default=22, help='latent size')
 parser.add_argument('--lr_gen_model', type=float, default=0.000015, help='learning rate for generator model')
 parser.add_argument('--lr_cls', type=float, default=0.00001, help='learning rate for classifier')
 parser.add_argument('--beta_factor', type=float, default=0.25, help='beta factor')
@@ -35,8 +35,12 @@ parser.add_argument('--cross_reconstruction_factor', type=float, default=2.37, h
 parser.add_argument('--distance_factor', type=float, default=8.13, help='distance factor')
 parser.add_argument('--loss', type=str, default='l2', help='loss to use, l1 or l2')
 parser.add_argument('--beta_factor_end_epoch', type=int, default=93, help='beta factor end epoch')
-parser.add_argument('--cross_reconstruction_factor_end_epoch', type=int, default=75, help='cross reconstruction factor end epoch')
+parser.add_argument('--cross_reconstruction_factor_end_epoch', type=int, default=75, help='cross reconstruction '
+                                                                                          'factor end epoch')
 parser.add_argument('--distance_factor_end_epoch', type=int, default=22, help='distance factor end epoch')
+parser.add_argument('--split', type=int, default=5, help='dataset split to use')
+parser.add_argument('--toggle_jitter', type=bool, default=False, help='toggle jitter of attribute vectors')
+parser.add_argument('--jitter_intensity', type=float, default=0.02, help='intensity of jitter')
 args = parser.parse_args()
 
 if args.device == 'cuda':
@@ -49,6 +53,9 @@ else:
 # the basic hyperparameters
 ########################################
 hyperparameters = {
+    'toggle_jitter': args.toggle_jitter,
+    'jitter_intensity': args.jitter_intensity,
+    'split': args.split,
     'num_shots': args.num_shots,
     'device': args.device,
     'model_specifics': {'cross_reconstruction': True,
@@ -80,9 +87,12 @@ hyperparameters = {
     'auxiliary_data_source': 'attributes',
     'lr_cls': args.lr_cls,
     'dataset': args.dataset,
-    'hidden_size_rule': {'resnet_features': (42, 25),
-                         'attributes': (50, 25),
-                         'sentences': (50, 25)},
+    # 'hidden_size_rule': {'resnet_features': (2048, 1024),
+    #                      'attributes': (50, 25),
+    #                      'sentences': (50, 25)},
+    'hidden_size_rule': {'resnet_features': (1560, 1660),
+                         'attributes': (1450, 665),
+                         'sentences': (1450, 665)},
     'latent_size': args.latent_size,
     'subset': args.subset
 }
@@ -159,19 +169,19 @@ if hyperparameters['generalized']:
         hyperparameters['samples_per_class'] = {'CUB': (200, 0, 200, 200), 'SUN': (200, 0, 200, 200),
                                                 'APY': (200, 0, 200, 200), 'AWA1': (200, 0, 200, 200),
                                                 'AWA2': (200, 0, 200, 200), 'FLO': (200, 0, 200, 200),
-                                                'POLLEN': (200, 0, 400, 0)}
+                                                'POLLEN': (200, 0, 200, 200)}
 else:
     if hyperparameters['num_shots'] == 0:
         hyperparameters['samples_per_class'] = {'CUB': (0, 0, 200, 0), 'SUN': (0, 0, 200, 0),
                                                 'APY': (0, 0, 200, 0), 'AWA1': (0, 0, 200, 0),
                                                 'AWA2': (0, 0, 200, 0), 'FLO': (0, 0, 200, 0),
-                                                'POLLEN': (200, 0, 400, 0)}
+                                                'POLLEN': (0, 0, 200, 0)}
 
     else:
         hyperparameters['samples_per_class'] = {'CUB': (0, 0, 200, 200), 'SUN': (0, 0, 200, 200),
                                                 'APY': (0, 0, 200, 200), 'AWA1': (0, 0, 200, 200),
                                                 'AWA2': (0, 0, 200, 200), 'FLO': (0, 0, 200, 200),
-                                                'POLLEN': (200, 0, 400, 0)}
+                                                'POLLEN': (0, 0, 200, 200)}
 
 model = Model(hyperparameters)
 model.to(hyperparameters['device'])
